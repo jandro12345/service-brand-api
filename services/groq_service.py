@@ -3,6 +3,14 @@ import os
 import json
 from dotenv import load_dotenv
 from tool import logger
+from langfuse import Langfuse
+from langfuse import observe
+
+langfuse = Langfuse(
+    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+    host=os.getenv("LANGFUSE_HOST"),
+)
 
 load_dotenv()
 
@@ -10,7 +18,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL = "llama-3.3-70b-versatile"
 
 # ----------------- MÓDULO I -----------------
-
+@observe(name="generate-brand-manual")
 def generate_brand_manual(briefing: str):
 
     prompt = f"""
@@ -43,15 +51,16 @@ def generate_brand_manual(briefing: str):
     )
     
     content = res.choices[0].message.content
-    logger.info(f"generate_brand_manual_content\n{content}\n")
     try:
+        content = res.choices[0].message.content
         return json.loads(content)
     except json.JSONDecodeError:
+        logger.error(f"generate_brand_manual_content_error\n{content}\n")
         raise ValueError("El modelo no devolvió JSON válido")
 
 
 # ----------------- MÓDULO II -----------------
-
+@observe(name="generate-creative-asset")
 def generate_creative_asset(manual: dict, instructions: str, asset_type: str, brand_name: str):
 
     prompt = f"""
@@ -70,7 +79,6 @@ def generate_creative_asset(manual: dict, instructions: str, asset_type: str, br
     {instructions}
     """
     
-    logger.info(f"generate_creative_asset_prompt\n{prompt}\n")
     res = client.chat.completions.create(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
@@ -78,35 +86,4 @@ def generate_creative_asset(manual: dict, instructions: str, asset_type: str, br
     )
 
     content = res.choices[0].message.content
-    logger.info(f"generate_creative_asset_content\n{content}\n")
     return content
-
-
-# ----------------- MÓDULO III (Texto) -----------------
-
-def audit_text(manual: dict, content: str):
-
-    prompt = f"""
-    Evalúa si el contenido cumple el Manual de Marca.
-
-    Manual:
-    {json.dumps(manual, indent=2)}
-
-    Contenido:
-    {content}
-
-    Devuelve SOLO JSON:
-
-    {{
-      "approved": true/false,
-      "reason": ""
-    }}
-    """
-
-    res = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0,
-    )
-
-    return json.loads(res.choices[0].message.content)
