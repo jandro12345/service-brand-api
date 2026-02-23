@@ -38,10 +38,10 @@ def audit_image(manual: dict, image_path: str):
             contents=[prompt, image]
         )
         logger.info(f"audit_image_response:\n{response.text}")
-        return_data = (response.text).replace("json", "")
+        return_data = (response.text).replace("json", "").replace("```", "").replace("```", "")
         return json.loads(return_data)
-    except Exception:
-        logger.error(f"Error audit_image: {return_data}")
+    except Exception as error:
+        logger.error(f"Error audit_image: {return_data}\n{str(error)}")
         return {
             "approved": False,
             "reason": "No se pudo interpretar la respuesta del modelo."

@@ -9,6 +9,7 @@ import os
 from routes.audit import audit_image_route
 from routes.brand import brand_route
 from routes.asset import asset_route
+from routes.login import login_route
 # from services.supabase_service import (
 #     create_brand,
 #     save_manual,
@@ -25,3 +26,4 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],allo
 app.include_router(audit_image_route, prefix="/api/v1.0")
 app.include_router(brand_route, prefix="/api/v1.0")
 app.include_router(asset_route, prefix="/api/v1.0")
+app.include_router(login_route, prefix="/api/v1.0")

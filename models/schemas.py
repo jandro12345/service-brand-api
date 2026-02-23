@@ -18,3 +18,8 @@ class AuditTextRequest(BaseModel):
 class ApprovalRequest(BaseModel):
     asset_id: str
     approve: bool
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str

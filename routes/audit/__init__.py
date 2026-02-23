@@ -1,9 +1,10 @@
-from fastapi import Request, APIRouter, UploadFile, File, Form
+from fastapi import Request, APIRouter, UploadFile, File, Form, Depends
 import os
 import shutil
 from services.vision_service import audit_image
 from services.supabase_service import (
     get_latest_manual,
+    require_roles,
 )
 
 audit_image_route = APIRouter(prefix="/audit-image")
@@ -11,7 +12,8 @@ audit_image_route = APIRouter(prefix="/audit-image")
 @audit_image_route.post("/audit-image")
 async def audit_image_asset(
     brand_id: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user=Depends(require_roles(["admin", "auditor"]))
 ):
 
     manual = get_latest_manual(brand_id)

@@ -1,4 +1,6 @@
 from supabase import create_client
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException
 import os
 from dotenv import load_dotenv
 import math
@@ -9,6 +11,37 @@ supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
 )
+
+security = HTTPBearer()
+
+def login_user(username, password):
+    response = supabase.auth.sign_in_with_password({
+        "email": username,
+        "password": password
+    })
+
+    if not response.user:
+        return {"error": "Invalid credentials"}
+
+    user_id = response.user.id
+
+    profile = supabase.table("profiles") \
+        .select("role") \
+        .eq("id", user_id) \
+        .single() \
+        .execute()
+
+    role = profile.data["role"] if profile.data else None
+
+    return {
+        "access_token": response.session.access_token,
+        "refresh_token": response.session.refresh_token,
+        "user": {
+            "id": user_id,
+            "email": response.user.email,
+            "role": role
+        }
+    }
 
 
 def create_brand(name):
@@ -162,3 +195,29 @@ def update_asset_status(asset_id, status):
         .update({"status": status})\
         .eq("id", asset_id)\
         .execute()
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+
+    user = supabase.auth.get_user(token)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return user
+
+
+def require_roles(allowed_roles: list):
+    def role_checker(user = Depends(get_current_user)):
+        profile = supabase.table("profiles") \
+            .select("role") \
+            .eq("id", user.user.id) \
+            .single() \
+            .execute()
+
+        if profile.data["role"] not in allowed_roles:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        return user
+    return role_checker
