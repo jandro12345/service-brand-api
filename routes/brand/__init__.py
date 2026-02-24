@@ -29,5 +29,5 @@ def list_manuals(
     page_size: int = Query(10, ge=1, le=100),
     user=Depends(get_current_user)
 ):
-    logger.info(f"Listing manuals - Page: {page}, Page Size: {page_size}")
+    # logger.info(f"Listing manuals - Page: {page}, Page Size: {page_size}")
     return get_manuals_paginated(page, page_size)
